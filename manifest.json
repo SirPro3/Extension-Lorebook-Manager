@@ -1,0 +1,8 @@
+{
+    "name": "Extension-Lorebook-Manager",
+    "display_name": "Lorebook Manager",
+    "version": "1.0.0",
+    "author": "SirPro3",
+    "js": "index.js",
+    "css": "style.css"
+}
