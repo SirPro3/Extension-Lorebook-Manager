@@ -167,24 +167,45 @@ function createLorebookManagerPopup() {
         const section = document.createElement('div');
         section.className = 'lorebook-section';
         section.innerHTML = `
-            <h3 class="lorebook-section-title">${title}</h3>
+            <div class="lorebook-section-title">
+                <span>${title}</span>
+                <div class="section-controls">
+                    <span class="move-section-up"><i class="fa-solid fa-arrow-up"></i></span>
+                    <span class="move-section-down"><i class="fa-solid fa-arrow-down"></i></span>
+                    <span class="delete-section">&times;</span>
+                </div>
+            </div>
             <div class="lorebook-list"></div>
             <div class="add-lorebook-flyout-anchor">
                 <button class="add-lorebook-button">+</button>
             </div>
         `;
 
-        const titleElement = section.querySelector('h3');
-        const deleteButton = document.createElement('span');
-        deleteButton.className = 'delete-section';
-        deleteButton.innerHTML = '&times;';
+        const deleteButton = /** @type {HTMLElement} */ (section.querySelector('.delete-section'));
         deleteButton.title = 'Delete section';
         deleteButton.addEventListener('click', () => {
             section.remove();
             saveSections();
             updateLorebookOrder(/** @type {HTMLSelectElement} */ (document.getElementById('world_editor_select')));
         });
-        titleElement.appendChild(deleteButton);
+
+        const upButton = section.querySelector('.move-section-up');
+        upButton.addEventListener('click', () => {
+            if (section.previousElementSibling) {
+                section.parentNode.insertBefore(section, section.previousElementSibling);
+                saveSections();
+                updateLorebookOrder(/** @type {HTMLSelectElement} */ (document.getElementById('world_editor_select')));
+            }
+        });
+
+        const downButton = section.querySelector('.move-section-down');
+        downButton.addEventListener('click', () => {
+            if (section.nextElementSibling) {
+                section.parentNode.insertBefore(section.nextElementSibling, section);
+                saveSections();
+                updateLorebookOrder(/** @type {HTMLSelectElement} */ (document.getElementById('world_editor_select')));
+            }
+        });
 
         const lorebookList = section.querySelector('.lorebook-list');
         const addLorebookButton = section.querySelector('.add-lorebook-button');
@@ -206,7 +227,7 @@ function createLorebookManagerPopup() {
     function saveSections() {
         const sections = [];
         sectionsContainer.querySelectorAll('.lorebook-section').forEach(sectionEl => {
-            const title = sectionEl.querySelector('h3').firstChild.textContent.trim();
+            const title = sectionEl.querySelector('.lorebook-section-title > span').textContent.trim();
             const lorebooks = [];
             sectionEl.querySelectorAll('.lorebook-item').forEach(lorebookEl => {
                 lorebooks.push((/** @type {HTMLElement} */ (lorebookEl)).dataset.lorebookName);

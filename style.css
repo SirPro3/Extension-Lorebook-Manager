@@ -55,7 +55,7 @@
 }
 .lorebook-section-title {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     font-size: calc(var(--mainFontSize) * 1.2);
     font-family: var(--mainFontFamily);
@@ -64,14 +64,27 @@
     color: var(--SmartThemeBodyColor);
 }
 
-.lorebook-section-title .delete-section {
+.lorebook-section-title .section-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.lorebook-section-title .delete-section,
+.lorebook-section-title .move-section-up,
+.lorebook-section-title .move-section-down {
     color: var(--SmartThemeBodyColor);
     opacity: 0.5;
+    cursor: pointer;
+}
+
+.lorebook-section-title .delete-section:hover,
+.lorebook-section-title .move-section-up:hover,
+.lorebook-section-title .move-section-down:hover {
+    opacity: 1;
 }
 
 .lorebook-section-title .delete-section:hover {
     color: var(--fullred);
-    opacity: 1;
 }
 .lorebook-list {
     min-height: 20px;
