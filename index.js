@@ -2,8 +2,23 @@ import { t } from '../../../i18n.js';
 
 const path = 'third-party/Extension-LorebookManager';
 
-let isUpdating = false;
 let originalOrder = [];
+
+/**
+* Gets a contrasting text color (black or white) for a given hex color.
+* @param {string} hexcolor
+* @returns {'black' | 'white'}
+*/
+function getContrastingTextColor(hexcolor) {
+   if (hexcolor.slice(0, 1) === '#') {
+       hexcolor = hexcolor.slice(1);
+   }
+   const r = parseInt(hexcolor.substring(0, 2), 16);
+   const g = parseInt(hexcolor.substring(2, 4), 16);
+   const b = parseInt(hexcolor.substring(4, 6), 16);
+   const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+   return (yiq >= 128) ? 'black' : 'white';
+}
 
 /**
  * Updates the lorebook manager button's icon.
@@ -36,6 +51,10 @@ function updateLorebookOrder(lorebookDropdown) {
     for (const sectionData of sections) {
         const group = document.createElement('optgroup');
         group.label = sectionData.title;
+        if (sectionData.color) {
+           group.style.backgroundColor = sectionData.color;
+           group.style.color = getContrastingTextColor(sectionData.color);
+        }
         for (const lorebookName of sectionData.lorebooks) {
             const option = allOptions.find(o => o.text === lorebookName);
             if (option) {
@@ -114,8 +133,10 @@ function createLorebookManagerPopup() {
     popup.id = 'lorebook_manager_popup';
     popup.innerHTML = `
         <div class="lorebook-manager-popup-content">
-            <span class="close-lorebook-manager-popup">&times;</span>
-            <h2>Lorebook Manager</h2>
+            <div class="lorebook-manager-popup-header">
+                <h2>Lorebook Manager</h2>
+                <span class="close-lorebook-manager-popup">&times;</span>
+            </div>
             <div class="lorebook-manager-controls">
                 <input type="text" id="new_section_title" placeholder="New section title">
                 <button id="add_section_button">Add Section</button>
@@ -137,7 +158,7 @@ function createLorebookManagerPopup() {
     addSectionButton.addEventListener('click', () => {
         const title = newSectionTitleInput.value.trim();
         if (title) {
-            const section = createSectionElement(title);
+            const section = createSectionElement(title, [], '#ffffff');
             sectionsContainer.appendChild(section);
             newSectionTitleInput.value = '';
             saveSections();
@@ -156,37 +177,40 @@ function createLorebookManagerPopup() {
         deleteButton.addEventListener('click', () => {
             lorebookItem.remove();
             saveSections();
-            updateLorebookOrder(/** @type {HTMLSelectElement} */ (document.getElementById('world_editor_select')));
         });
 
         lorebookItem.appendChild(deleteButton);
         return lorebookItem;
     }
 
-    function createSectionElement(title, lorebooks = []) {
-        const section = document.createElement('div');
-        section.className = 'lorebook-section';
-        section.innerHTML = `
-            <div class="lorebook-section-title">
-                <span>${title}</span>
-                <div class="section-controls">
-                    <span class="move-section-up"><i class="fa-solid fa-arrow-up"></i></span>
-                    <span class="move-section-down"><i class="fa-solid fa-arrow-down"></i></span>
-                    <span class="delete-section">&times;</span>
+    function createSectionElement(title, lorebooks = [], color = '#ffffff') {
+            const section = document.createElement('div');
+            section.className = 'lorebook-section';
+            section.innerHTML = `
+                <div class="lorebook-section-title">
+                    <span>${title}</span>
+                    <div class="section-controls">
+                       <input type="color" class="section-color-picker" value="${color}">
+                        <span class="move-section-up"><i class="fa-solid fa-arrow-up"></i></span>
+                        <span class="move-section-down"><i class="fa-solid fa-arrow-down"></i></span>
+                        <span class="delete-section">&times;</span>
+                    </div>
                 </div>
-            </div>
-            <div class="lorebook-list"></div>
-            <div class="add-lorebook-flyout-anchor">
-                <button class="add-lorebook-button">+</button>
-            </div>
-        `;
-
-        const deleteButton = /** @type {HTMLElement} */ (section.querySelector('.delete-section'));
+                <div class="lorebook-list"></div>
+                <div class="add-lorebook-flyout-anchor">
+                    <button class="add-lorebook-button">+</button>
+                </div>
+            `;
+   
+            const colorPicker = /** @type {HTMLInputElement} */ (section.querySelector('.section-color-picker'));
+            colorPicker.addEventListener('input', () => {
+                saveSections();
+            });
+            const deleteButton = /** @type {HTMLElement} */ (section.querySelector('.delete-section'));
         deleteButton.title = 'Delete section';
         deleteButton.addEventListener('click', () => {
             section.remove();
             saveSections();
-            updateLorebookOrder(/** @type {HTMLSelectElement} */ (document.getElementById('world_editor_select')));
         });
 
         const upButton = section.querySelector('.move-section-up');
@@ -194,7 +218,6 @@ function createLorebookManagerPopup() {
             if (section.previousElementSibling) {
                 section.parentNode.insertBefore(section, section.previousElementSibling);
                 saveSections();
-                updateLorebookOrder(/** @type {HTMLSelectElement} */ (document.getElementById('world_editor_select')));
             }
         });
 
@@ -203,7 +226,6 @@ function createLorebookManagerPopup() {
             if (section.nextElementSibling) {
                 section.parentNode.insertBefore(section.nextElementSibling, section);
                 saveSections();
-                updateLorebookOrder(/** @type {HTMLSelectElement} */ (document.getElementById('world_editor_select')));
             }
         });
 
@@ -213,8 +235,7 @@ function createLorebookManagerPopup() {
         addLorebookButton.addEventListener('click', (event) => {
             event.stopPropagation();
             const flyout = createAddLorebookFlyout(section);
-            const anchor = section.querySelector('.add-lorebook-flyout-anchor');
-            anchor.appendChild(flyout);
+            document.body.appendChild(flyout);
         });
 
         for (const lorebookName of lorebooks) {
@@ -232,20 +253,26 @@ function createLorebookManagerPopup() {
             sectionEl.querySelectorAll('.lorebook-item').forEach(lorebookEl => {
                 lorebooks.push((/** @type {HTMLElement} */ (lorebookEl)).dataset.lorebookName);
             });
-            sections.push({ title, lorebooks });
+            const colorPicker = /** @type {HTMLInputElement} */ (sectionEl.querySelector('.section-color-picker'));
+            const color = colorPicker ? colorPicker.value : '#ffffff';
+            sections.push({ title, lorebooks, color });
         });
         localStorage.setItem('lorebookSections', JSON.stringify(sections));
+        updateLorebookOrder(/** @type {HTMLSelectElement} */ (document.getElementById('world_editor_select')));
     }
 
     function loadSections() {
         const sections = JSON.parse(localStorage.getItem('lorebookSections')) || [];
         for (const sectionData of sections) {
-            const section = createSectionElement(sectionData.title, sectionData.lorebooks);
+            const section = createSectionElement(sectionData.title, sectionData.lorebooks, sectionData.color);
             sectionsContainer.appendChild(section);
         }
     }
 
     function createAddLorebookFlyout(section) {
+        const flyoutWrapper = document.createElement('div');
+        flyoutWrapper.className = 'add-lorebook-flyout-wrapper';
+
         const flyout = document.createElement('div');
         flyout.className = 'add-lorebook-flyout';
 
@@ -254,27 +281,35 @@ function createLorebookManagerPopup() {
         const currentLorebooks = Array.from(section.querySelectorAll('.lorebook-item')).map(item => (/** @type {HTMLElement} */ (item)).dataset.lorebookName);
         const availableLorebooks = allLorebooks.filter(p => !currentLorebooks.includes(p));
 
-        for (const lorebookName of availableLorebooks) {
-            const flyoutItem = document.createElement('div');
-            flyoutItem.className = 'flyout-item';
-            flyoutItem.textContent = lorebookName;
-            flyoutItem.addEventListener('click', () => {
-                const lorebookItem = createLorebookItem(lorebookName);
-                section.querySelector('.lorebook-list').appendChild(lorebookItem);
-                saveSections();
-                updateLorebookOrder(lorebookDropdown);
-                flyout.remove();
-            });
-            flyout.appendChild(flyoutItem);
+        if (availableLorebooks.length === 0) {
+            const noBooksItem = document.createElement('div');
+            noBooksItem.className = 'flyout-item';
+            noBooksItem.textContent = 'No available lorebooks to add.';
+            flyout.appendChild(noBooksItem);
+        } else {
+            for (const lorebookName of availableLorebooks) {
+                const flyoutItem = document.createElement('div');
+                flyoutItem.className = 'flyout-item';
+                flyoutItem.textContent = lorebookName;
+                flyoutItem.addEventListener('click', () => {
+                    const lorebookItem = createLorebookItem(lorebookName);
+                    section.querySelector('.lorebook-list').appendChild(lorebookItem);
+                    saveSections();
+                    flyoutWrapper.remove();
+                });
+                flyout.appendChild(flyoutItem);
+            }
         }
 
-        document.addEventListener('click', (event) => {
-            if (!flyout.contains(/** @type {Node} */ (event.target))) {
-                flyout.remove();
-            }
-        }, { once: true });
+        flyoutWrapper.appendChild(flyout);
 
-        return flyout;
+        flyoutWrapper.addEventListener('click', (event) => {
+            if (event.target === flyoutWrapper) {
+                flyoutWrapper.remove();
+            }
+        });
+
+        return flyoutWrapper;
     }
 
     loadSections();
