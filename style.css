@@ -92,6 +92,19 @@
 .delete-lorebook-item:hover {
     opacity: 1;
 }
+.lorebook-section-title .rename-section {
+    background-color: var(--SmartThemeBlurTintColor);
+    border: 1px solid var(--SmartThemeBorderColor);
+    color: var(--SmartThemeBodyColor);
+    border-radius: 5px;
+    padding: 0px 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.lorebook-section-title .rename-section:hover {
+    background-color: var(--white30a);
+}
 
 /* Specific styles for delete buttons */
 .lorebook-section-title .delete-section,

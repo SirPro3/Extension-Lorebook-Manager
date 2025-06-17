@@ -191,6 +191,7 @@ function createLorebookManagerPopup() {
                     <span>${title}</span>
                     <div class="section-controls">
                        <input type="color" class="section-color-picker" value="${color}">
+                        <button class="rename-section" title="Rename section">Rename</button>
                         <span class="move-section-up"><i class="fa-solid fa-arrow-up"></i></span>
                         <span class="move-section-down"><i class="fa-solid fa-arrow-down"></i></span>
                         <span class="delete-section">&times;</span>
@@ -205,6 +206,39 @@ function createLorebookManagerPopup() {
             const colorPicker = /** @type {HTMLInputElement} */ (section.querySelector('.section-color-picker'));
             colorPicker.addEventListener('input', () => {
                 saveSections();
+            });
+
+            const titleSpan = section.querySelector('.lorebook-section-title > span');
+            const renameButton = /** @type {HTMLElement} */ (section.querySelector('.rename-section'));
+            renameButton.addEventListener('click', () => {
+                const currentTitle = titleSpan.textContent;
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = currentTitle;
+                input.className = 'section-title-input';
+
+                titleSpan.replaceWith(input);
+                input.focus();
+                input.select();
+
+                const saveNewTitle = () => {
+                    const newTitle = input.value.trim();
+                    if (newTitle && newTitle !== currentTitle) {
+                        titleSpan.textContent = newTitle;
+                    }
+                    input.replaceWith(titleSpan);
+                    saveSections();
+                };
+
+                input.addEventListener('blur', saveNewTitle);
+                input.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        saveNewTitle();
+                    } else if (event.key === 'Escape') {
+                        input.value = currentTitle;
+                        saveNewTitle();
+                    }
+                });
             });
             const deleteButton = /** @type {HTMLElement} */ (section.querySelector('.delete-section'));
         deleteButton.title = 'Delete section';
